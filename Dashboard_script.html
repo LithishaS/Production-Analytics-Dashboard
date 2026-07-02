@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Production Analytics Dashboard – Sci‑Fi Blue Analytics</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;600;700&family=Inter:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+
+  <style>
+    :root{
+      /* Sci‑fi palette with added accent hues for legibility */
+      --bg:#0a0f1a;
+      --bg-elev:#0e1626;
+      --grid:#0f213d;
+      --text:#cfe7ff;
+      --muted:#7aa0c7;
+      --accent:#23a8ff;      /* neon blue */
+      --accent-neon:#2dd4ff; /* cyan */
+      --accent-deep:#6c7dff; /* indigo/violet */
+      --accent-mag:#ff58c8;  /* magenta */
+      --accent-amber:#ffb84d;/* amber for contrast */
+      --danger:#ff5d5d;
+
+      --border:#163055;
+      --radius:16px;
+      --maxw:1220px;
+      --shadow:0 10px 30px rgba(0,0,0,0.45);
+      --header-huge:68px;
+      --header-small:22px;
+      --gutter:24px;
+      --glow:0 0 18px rgba(35,168,255,0.45), 0 0 38px rgba(35,168,255,0.25);
+      --glow-subtle:0 0 10px rgba(45,212,255,0.25);
+    }
+
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:radial-gradient(1200px 800px at 20% 0%, #0d1424 0%, #0a0f1a 50%, #070b13 100%);color:var(--text)}
+    body{font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;line-height:1.6;background-attachment: fixed;}
+    body:before{content:"";position:fixed;inset:0;background:
+      linear-gradient(transparent 95%, rgba(35,168,255,0.08) 96%),
+      linear-gradient(90deg, transparent 95%, rgba(35,168,255,0.08) 96%);
+      background-size: 34px 34px, 34px 34px;pointer-events:none;opacity:.25;mix-blend-mode:screen;}
+
+    .container{width:100%;max-width:var(--maxw);margin:0 auto;padding:0 22px;}
+    .site-header{position:sticky;top:0;z-index:50;background:rgba(10,15,26,.72);backdrop-filter: blur(10px);border-bottom:1px solid var(--border);transition:box-shadow .25s ease, background .25s ease;}
+    .site-header.scrolled{ box-shadow: var(--shadow); }
+    .brand-row{display:flex;align-items:flex-end;justify-content:space-between;padding:28px 0;transition:padding .35s ease;gap:16px;}
+    .site-header.shrink .brand-row{ padding:10px 0; }
+    .brand-wrap{ display:flex; align-items:flex-end; gap:14px; min-width:0; }
+    .brand-title{font-family: Orbitron, Inter, sans-serif;font-weight:700;letter-spacing:.02em;line-height:1.05;margin:0;font-size:var(--header-huge);color:var(--accent-neon);text-shadow: var(--glow);transition:font-size .35s ease, transform .35s ease, letter-spacing .35s ease;white-space:nowrap;}
+    .site-header.shrink .brand-title{font-size:var(--header-small);transform:translateY(2px);letter-spacing:.06em;text-shadow: 0 0 10px rgba(45,212,255,0.35);}
+    .brand-sub{display:none;}
+    .header-actions{ display:flex; align-items:center; gap:10px; }
+
+    .hero{ padding:22px 0 12px 0; }
+    .hero h2{margin:0 0 6px 0; font-size:26px; letter-spacing:.02em;color:var(--accent-neon); text-shadow: var(--glow-subtle);}
+    .hero p{ margin:8px 0 0 0; color:var(--muted); max-width:72ch; }
+
+    .grid{display:grid;grid-template-columns:1fr;gap:var(--gutter);margin:20px 0 60px 0;}
+    @media (min-width: 980px){ .grid{ grid-template-columns: 1.2fr 1fr; } }
+
+    .card{background: linear-gradient(180deg, rgba(16,26,45,.75), rgba(12,19,34,.75));border:1px solid var(--border);border-radius:var(--radius);box-shadow: var(--shadow);overflow:hidden;}
+    .card-header{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;border-bottom:1px solid var(--border);
+      background: radial-gradient(600px 180px at 8% 0%, rgba(35,168,255,.12), rgba(16,26,45,.3));}
+    .card-title{margin:0;font-size:16px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;color:#e1f2ff;}
+    .card-body{padding:18px;}
+    .muted{color:var(--muted);}
+
+    .controls{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0 0 0;}
+    .btn{appearance:none;border:1px solid var(--border);background: linear-gradient(180deg, #0f1a2e, #0c1424);color:var(--text);padding:10px 14px;border-radius:12px;font-weight:700;letter-spacing:.04em;cursor:pointer;transition: all .2s ease;box-shadow: inset 0 0 0 1px rgba(35,168,255,.25);}
+    .btn:hover{transform:translateY(-1px);box-shadow: 0 0 0 2px rgba(45,212,255,.25), 0 8px 24px rgba(0,0,0,.35);}
+    .btn-primary{background: linear-gradient(180deg, #1c74ff, #114d9f);border-color: transparent;color:#e8f6ff;text-shadow: 0 0 8px rgba(255,255,255,.18);box-shadow: 0 0 14px rgba(35,168,255,.45), inset 0 0 18px rgba(45,212,255,.18);}
+    .btn-primary:hover{filter:brightness(1.05);box-shadow: 0 0 24px rgba(45,212,255,.55), inset 0 0 24px rgba(45,212,255,.22);}
+    .tag{font-size:11px;border:1px solid rgba(255,255,255,.15);padding:2px 8px;border-radius:999px;letter-spacing:.08em;text-transform:uppercase;opacity:.9}
+
+    .file-input{ position:relative; display:inline-flex; align-items:center; gap:10px; }
+    .file-input input[type="file"]{ position:absolute; inset:0; opacity:0; cursor:pointer; }
+    .file-label{padding:10px 14px;border:1px dashed rgba(45,212,255,.35);border-radius:12px;color:#a9d9ff;background: rgba(5,12,24,.6);font-weight:700;letter-spacing:.04em;box-shadow: inset 0 0 18px rgba(35,168,255,.08);}
+
+    .analysis{display:grid;grid-template-columns:1fr;gap:var(--gutter);}
+    @media (min-width: 1200px){ .analysis{ grid-template-columns:1fr 1fr; } }
+
+    .kpis{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+    @media (min-width: 700px){.kpis{grid-template-columns: repeat(4, 1fr);}}
+    .kpi{background: linear-gradient(180deg, rgba(12,22,40,.8), rgba(10,18,34,.8));border:1px solid var(--border);border-radius:12px;padding:14px;box-shadow: inset 0 0 0 1px rgba(35,168,255,.12);}
+    .kpi .label{color:#9bc4eb;font-size:12px;letter-spacing:.12em;text-transform:uppercase;}
+    .kpi .value{font-family: Orbitron, Inter, sans-serif;font-weight:800;font-size:24px;letter-spacing:.06em;color:#e8f6ff;text-shadow: 0 0 8px rgba(45,212,255,.25);}
+
+    .footer-space{height:80px;}
+    a{color:var(--accent);} a:hover{text-decoration:underline;}
+    .spacer-hero{height:6px;}
+    .chart-wrap{position:relative;width:100%;height:320px;}
+    .badge{font-size:11px;color:#9ee8ff;background:rgba(23,120,220,.2);border:1px solid rgba(35,168,255,.45);padding:2px 8px;border-radius:999px;font-weight:800;letter-spacing:.12em;text-transform:uppercase;box-shadow: inset 0 0 12px rgba(35,168,255,.2);}
+
+    /* Color accents for headings of new sections */
+    .violet .card-header{background: radial-gradient(600px 180px at 8% 0%, rgba(108,125,255,.18), rgba(16,26,45,.3));}
+    .magenta .card-header{background: radial-gradient(600px 180px at 8% 0%, rgba(255,88,200,.18), rgba(16,26,45,.3));}
+    .amber .card-header{background: radial-gradient(600px 180px at 8% 0%, rgba(255,184,77,.18), rgba(16,26,45,.3));}
+  </style>
+</head>
+<body>
+  <header class="site-header" id="siteHeader">
+    <div class="container">
+      <div class="brand-row">
+        <div class="brand-wrap">
+          <h1 class="brand-title" id="brandTitle">Production Analytics Dashboard</h1>
+        </div>
+        <div class="header-actions">
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="spacer-hero"></div>
+
+  <main class="container">
+    <section class="hero">
+      <h2>Analytics Workspace</h2>
+      <p>Upload a CSV/XLSX file to perform a pseudo-analysis on production, defects, and operator performance. Pareto and SPC-style analyses are applied to identify key contributors and process variations, presented through clear and easily interpretable visuals.</p>
+    </section>
+
+    <!-- Data input + KPIs -->
+    <section class="grid">
+      <article class="card">
+        <div class="card-header">
+          <h3 class="card-title">Data input</h3>
+          <span class="tag">CSV/XLSX</span>
+        </div>
+        <div class="card-body">
+          <div class="controls">
+            <label class="file-input">
+              <input id="fileInput" type="file" accept=".csv,.xlsx,.xls" />
+              <span class="file-label" id="fileLabel">Choose CSV / Excel</span>
+            </label>
+            <button class="btn" id="clearBtn">Clear</button>
+            <button class="btn btn-primary" id="analyzeBtn">Analyse</button>
+          </div>
+          <p class="muted" id="fileHint" style="margin-top:10px;">No file selected. A generated sample will drive the analysis.</p>
+          <div id="preview" style="margin-top:16px; overflow:auto; max-height:200px; border-top:1px solid var(--border); padding-top:12px;"></div>
+        </div>
+      </article>
+
+      <article class="card">
+        <div class="card-header">
+          <h3 class="card-title">Key indicators</h3>
+          <span class="tag">neon metrics</span>
+        </div>
+        <div class="card-body">
+          <div class="kpis">
+            <div class="kpi"><div class="label">Total Items</div><div class="value" id="kpi1">—</div></div>
+            <div class="kpi"><div class="label">Avg Scrap %</div><div class="value" id="kpi2">—</div></div>
+            <div class="kpi"><div class="label">Suppliers</div><div class="value" id="kpi3">—</div></div>
+            <div class="kpi"><div class="label">On-time Rate</div><div class="value" id="kpi4">—</div></div>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <!-- Core charts -->
+    <section class="card">
+      <div class="card-header">
+        <h3 class="card-title">Visual analysis</h3>
+        <span class="muted">Bar • Doughnut • Line • Heat</span>
+      </div>
+      <div class="card-body">
+        <div class="analysis">
+          <div class="chart-wrap"><canvas id="barChart"></canvas></div>
+          <div class="chart-wrap"><canvas id="donutChart"></canvas></div>
+          <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+          <div class="chart-wrap"><canvas id="heatChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Advanced: Top 10 Defect Patterns (Pareto) -->
+    <section class="card violet" style="margin-top:24px;">
+      <div class="card-header">
+        <h3 class="card-title">Root cause: Top 10 defects</h3>
+        <span class="tag">pareto 80/20</span>
+      </div>
+      <div class="card-body">
+        <p class="muted" style="margin-top:0">Bars show defect counts ranked high to low; the line is cumulative percent to identify the vital few drivers to prioritize first.</p>
+        <div class="chart-wrap"><canvas id="paretoChart"></canvas></div>
+      </div>
+    </section>
+
+    <!-- Advanced: Operator Performance (SPC style) -->
+    <section class="card magenta" style="margin-top:24px;">
+      <div class="card-header">
+        <h3 class="card-title">Operator performance dashboard</h3>
+        <span class="tag">SPC & distribution</span>
+      </div>
+      <div class="card-body">
+        <p class="muted" style="margin-top:0">Control‑style chart with mean and ±3σ bands for cycle time; histogram shows distribution spread to assess stability and potential capability.</p>
+        <div class="analysis">
+          <div class="chart-wrap"><canvas id="operatorSpcChart"></canvas></div>
+          <div class="chart-wrap"><canvas id="operatorHistChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <div class="footer-space"></div>
+  </main>
+
+  <script>
+    // Sticky header shrink
+    const siteHeader = document.getElementById('siteHeader');
+    const shrinkThreshold = 40;
+    const onScroll = () => {
+      const scrolled = (document.body.scrollTop || document.documentElement.scrollTop) > shrinkThreshold;
+      siteHeader.classList.toggle('shrink', scrolled);
+      siteHeader.classList.toggle('scrolled', scrolled);
+    };
+    window.addEventListener('scroll', onScroll, {passive:true});
+    onScroll();
+
+    // Elements
+    const fileInput = document.getElementById('fileInput');
+    const fileLabel = document.getElementById('fileLabel');
+    const fileHint  = document.getElementById('fileHint');
+    const previewEl = document.getElementById('preview');
+    const clearBtn  = document.getElementById('clearBtn');
+    const analyzeBtn= document.getElementById('analyzeBtn');
+
+    let parsedPreview = null;
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files?.[0];
+      if(!file){ resetFileUi(); return; }
+      fileLabel.textContent = file.name;
+      fileHint.textContent = `Selected: ${file.name} (${Math.round(file.size/1024)} KB). Showing a small preview below.`;
+
+      if(file.name.toLowerCase().endsWith('.csv')){
+        const text = await file.text();
+        const lines = text.split(/\r?\n/).filter(Boolean).slice(0, 11);
+        parsedPreview = lines.map(line => line.split(','));
+        renderTablePreview(parsedPreview);
+      } else {
+        parsedPreview = null;
+        previewEl.innerHTML = `<div class="muted">Excel preview is limited in this demo. Proceed with Analyse for pseudo analysis.</div>`;
+      }
+    });
+
+    function resetFileUi(){
+      fileLabel.textContent = 'Choose CSV / Excel';
+      fileHint.textContent = 'No file selected. A generated sample will drive the analysis.';
+      previewEl.innerHTML = '';
+      parsedPreview = null;
+    }
+
+    // KPIs
+    function nullifyKpis(){
+      document.getElementById('kpi1').textContent = '—';
+      document.getElementById('kpi2').textContent = '—';
+      document.getElementById('kpi3').textContent = '—';
+      document.getElementById('kpi4').textContent = '—';
+    }
+    nullifyKpis();
+
+    function renderTablePreview(rows){
+      if(!rows || rows.length === 0){
+        previewEl.innerHTML = '<div class="muted">No preview available.</div>';
+        return;
+      }
+      const head = rows[0];
+      const body = rows.slice(1, Math.min(rows.length, 11));
+      let html = '<table style="border-collapse:collapse; width:100%;">';
+      html += '<thead><tr>';
+      head.forEach(h => html += `<th style="text-align:left; padding:6px 8px; border-bottom:1px solid var(--border); font-weight:800; letter-spacing:.06em; text-transform:uppercase;">${escapeHtml(h)}</th>`);
+      html += '</tr></thead><tbody>';
+      body.forEach(r=>{
+        html += '<tr>';
+        r.forEach(c => html += `<td style="padding:6px 8px; border-bottom:1px dashed var(--border); color:#a8d3ff;">${escapeHtml(c)}</td>`);
+        html += '</tr>';
+      });
+      html += '</tbody></table>';
+      previewEl.innerHTML = html;
+    }
+
+    function escapeHtml(str){
+      return String(str ?? '').replace(/[&<>"']/g, s => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+    }
+
+    // Charts
+    let barChart, donutChart, lineChart, heatChart, paretoChart, operatorSpcChart, operatorHistChart;
+
+    function makeLinearGradient(ctx, area, from, to){
+      if(!area) return from;
+      const g = ctx.createLinearGradient(0, area.bottom, 0, area.top);
+      g.addColorStop(0, from);
+      g.addColorStop(1, to);
+      return g;
+    }
+
+    // Sample data generators
+    function generateCoreSample(){
+      const categories = ['Stamping','Welding','Cutting','Forming','Assembly','Finishing'];
+      const qty = categories.map(_ => Math.floor(200 + Math.random()*800));
+      const scrapPct = categories.map(_ => +(2 + Math.random()*6).toFixed(1));
+      const suppliers = ['S1','S2','S3','S4','S5'];
+      const shareRaw = suppliers.map(_ => +(10 + Math.random()*30).toFixed(1));
+      const sumShare = shareRaw.reduce((a,b)=>a+b,0);
+      const share = shareRaw.map(v => +(v*100/sumShare).toFixed(1));
+      const days = Array.from({length:12}, (_,i)=>`M${i+1}`);
+      const onTime = days.map(_ => +(85 + Math.random()*12).toFixed(1));
+      const heatLabelsX = ['January – March','April – June','July – September','October – December'];
+      const heatLabelsY = ['Press Line 1','Welding Cell 2','Assembly Line 3'];
+      const heatData = heatLabelsY.map(_ => heatLabelsX.map(__ => Math.floor(Math.random()*20)));
+      return { categories, qty, scrapPct, suppliers, share, days, onTime, heatLabelsX, heatLabelsY, heatData };
+    }
+
+    // Generate top 10 defects with counts; sorted desc for Pareto
+    function generateDefectsTop10(){
+      const names = ['Burr','Warp','Scratch','Dent','Underfill','Overcut','Misalign','Porosity','Crack','Stain','Chip','Deform','Flash','Hole-Off','Undersize'];
+      const picks = [];
+      while(picks.length < 10){
+        const i = Math.floor(Math.random()*names.length);
+        const n = names[i];
+        if(!picks.includes(n)) picks.push(n);
+      }
+      const counts = picks.map((_,i)=> Math.floor(10 + Math.random()*120));
+      // sort desc
+      const pairs = picks.map((n,i)=>({name:n,count:counts[i]})).sort((a,b)=>b.count-a.count);
+      const total = pairs.reduce((a,b)=>a+b.count,0);
+      const perc = pairs.map(p=> (p.count/total)*100);
+      let cum = 0;
+      const cumPerc = perc.map(p=> (cum+=p));
+      return { labels: pairs.map(p=>p.name), counts: pairs.map(p=>p.count), cumulative: cumPerc.map(v=>+v.toFixed(1)), total: total };
+    }
+
+    // Operator cycle time series with mean and control bands; histogram for distribution
+    function generateOperatorPerf(){
+      const n=40;
+      let mean = 48 + (Math.random()-0.5)*2;
+      const vals = Array.from({length:n}, (_,i)=>{
+        const drift = Math.sin(i/7)*1.2;
+        return +(mean + drift + (Math.random()-0.5)*4).toFixed(2);
+      });
+      const labels = Array.from({length:n}, (_,i)=>`Run ${i+1}`);
+      const avg = vals.reduce((a,b)=>a+b,0)/n;
+      const variance = vals.reduce((a,b)=>a + (b-avg)*(b-avg),0)/n;
+      const sd = Math.sqrt(variance);
+      const ucl = avg + 3*sd;
+      const lcl = Math.max(0, avg - 3*sd);
+      return { labels, vals, avg, sd, ucl, lcl };
+    }
+
+    function computeKpis(sample){
+      const totalItems = sample.qty.reduce((a,b)=>a+b,0);
+      const avgScrap = sample.scrapPct.reduce((a,b)=>a+b,0)/sample.scrapPct.length;
+      const supplierCount = sample.suppliers.length;
+      const onTimeAvg = sample.onTime.reduce((a,b)=>a+b,0)/sample.onTime.length;
+      return { totalItems, avgScrap: avgScrap.toFixed(1)+'%', suppliers: supplierCount, onTime: onTimeAvg.toFixed(1)+'%' };
+    }
+
+    function updateKpis(k){
+      document.getElementById('kpi1').textContent = k.totalItems.toLocaleString();
+      document.getElementById('kpi2').textContent = k.avgScrap;
+      document.getElementById('kpi3').textContent = String(k.suppliers);
+      document.getElementById('kpi4').textContent = k.onTime;
+    }
+
+    function mkCtx(id){ return document.getElementById(id).getContext('2d'); }
+
+    function destroyAllChartsAndClear(){
+      [barChart, donutChart, lineChart, heatChart, paretoChart, operatorSpcChart, operatorHistChart].forEach(ch => { try{ ch && ch.destroy(); }catch(e){} });
+      barChart = donutChart = lineChart = heatChart = paretoChart = operatorSpcChart = operatorHistChart = undefined;
+      ['barChart','donutChart','lineChart','heatChart','paretoChart','operatorSpcChart','operatorHistChart'].forEach(id=>{
+        const c = document.getElementById(id);
+        if(c){ const ctx = c.getContext('2d'); ctx && ctx.clearRect(0,0,c.width,c.height); }
+      });
+    }
+
+    function renderCoreCharts(sample){
+      const accent = getComputedStyle(document.documentElement).getPropertyValue('--accent').trim() || '#23a8ff';
+      const neon   = getComputedStyle(document.documentElement).getPropertyValue('--accent-neon').trim() || '#2dd4ff';
+      const deep   = getComputedStyle(document.documentElement).getPropertyValue('--accent-deep').trim() || '#6c7dff';
+      const mag    = getComputedStyle(document.documentElement).getPropertyValue('--accent-mag').trim()  || '#ff58c8';
+      const amber  = getComputedStyle(document.documentElement).getPropertyValue('--accent-amber').trim()|| '#ffb84d';
+      const muted  = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#7aa0c7';
+
+      // BAR + LINE (dual axis)
+      {
+        const ctx = mkCtx('barChart');
+        barChart = new Chart(ctx, {
+          type:'bar',
+          data:{
+            labels: sample.categories,
+            datasets:[
+              {
+                label:'Quantity',
+                data: sample.qty,
+                backgroundColor:(context)=>{
+                  const {chartArea} = context.chart;
+                  return makeLinearGradient(context.chart.ctx, chartArea, 'rgba(35,168,255,0.25)', 'rgba(45,212,255,0.55)');
+                },
+                borderColor: accent, borderWidth:1.5, borderRadius:6, borderSkipped:false,
+                hoverBackgroundColor:'rgba(45,212,255,0.75)'
+              },
+              {
+                label:'Scrap %',
+                data: sample.scrapPct,
+                type:'line',
+                yAxisID:'y1',
+                borderColor: mag,
+                pointBackgroundColor: mag,
+                pointBorderColor: mag,
+                pointRadius:3,
+                fill:true,
+                backgroundColor:(context)=>{
+                  const {chartArea} = context.chart;
+                  return makeLinearGradient(context.chart.ctx, chartArea, 'rgba(255,88,200,0.18)', 'rgba(255,88,200,0.02)');
+                },
+                tension:.3
+              }
+            ]
+          },
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            scales:{
+              x:{ grid:{ color:'rgba(35,168,255,0.08)' }, ticks:{ color:'#a9d9ff' } },
+              y:{ beginAtZero:true, grid:{ color:'rgba(35,168,255,0.1)' }, ticks:{ color:'#a9d9ff' } },
+              y1:{ position:'right', beginAtZero:true, grid:{ display:false }, ticks:{ color:'#a9d9ff', callback:v=>v+'%' } }
+            },
+            plugins:{
+              legend:{ position:'bottom', labels:{ color: muted } },
+              tooltip:{ mode:'index', intersect:false, backgroundColor:'rgba(6,12,24,0.9)', borderColor:'rgba(45,212,255,0.35)', borderWidth:1, titleColor:'#e8f6ff', bodyColor:'#cfe7ff' }
+            }
+          }
+        });
+      }
+
+      // DONUT
+      {
+        const ctx = mkCtx('donutChart');
+        donutChart = new Chart(ctx, {
+          type:'doughnut',
+          data:{
+            labels: sample.suppliers,
+            datasets:[{
+              label:'Share',
+              data: sample.share,
+              backgroundColor:['#23a8ff','#2dd4ff','#6c7dff','#ff58c8','#ffb84d'].map(c=>c+'cc'),
+              borderColor:'rgba(8,16,32,0.9)', borderWidth:2
+            }]
+          },
+          options:{
+            responsive:true, maintainAspectRatio:false, cutout:'60%',
+            plugins:{ legend:{ position:'bottom', labels:{ color: muted } },
+              tooltip:{ callbacks:{ label:(ctx)=>`${ctx.label}: ${ctx.parsed.toFixed(1)}%` }, backgroundColor:'rgba(6,12,24,0.9)', borderColor:'rgba(45,212,255,0.35)', borderWidth:1, titleColor:'#e8f6ff', bodyColor:'#cfe7ff' } }
+          }
+        });
+      }
+
+      // LINE (on-time)
+      {
+        const ctx = mkCtx('lineChart');
+        lineChart = new Chart(ctx, {
+          type:'line',
+          data:{
+            labels: sample.days,
+            datasets:[{
+              label:'On-time Delivery %',
+              data: sample.onTime,
+              borderColor: deep,
+              backgroundColor:(context)=>{
+                const {chartArea} = context.chart;
+                return makeLinearGradient(context.chart.ctx, chartArea, 'rgba(108,125,255,0.24)', 'rgba(108,125,255,0.05)');
+              },
+              fill:true, tension:.35, pointRadius:3, pointBackgroundColor:deep, pointBorderColor:deep
+            }]
+          },
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            scales:{
+              x:{ grid:{ color:'rgba(35,168,255,0.08)' }, ticks:{ color:'#a9d9ff' } },
+              y:{ beginAtZero:false, suggestedMin:80, suggestedMax:100, ticks:{ color:'#a9d9ff', callback:v=>v+'%' }, grid:{ color:'rgba(35,168,255,0.1)' } }
+            },
+            plugins:{ legend:{ position:'bottom', labels:{ color: muted } }, tooltip:{ backgroundColor:'rgba(6,12,24,0.9)', borderColor:'rgba(45,212,255,0.35)', borderWidth:1, titleColor:'#e8f6ff', bodyColor:'#cfe7ff' } }
+          }
+        });
+      }
+
+      // HEAT (stacked)
+      {
+        const ctx = mkCtx('heatChart');
+        const heatColors = (v) => {
+          const t = v/20;
+          const c1=[45,212,255], c2=[255,184,77];
+          const mix=(a,b)=>Math.round(a+(b-a)*t);
+          const r=mix(c1[0],c2[0]), g=mix(c1[1],c2[1]), b=mix(c1[2],c2[2]);
+          return `rgba(${r},${g},${b},0.85)`;
+        };
+        const datasets = sample.heatLabelsY.map((rowLabel, rowIdx) => ({
+          label: rowLabel,
+          data: sample.heatLabelsX.map((_, colIdx) => sample.heatData[rowIdx][colIdx]),
+          backgroundColor: sample.heatLabelsX.map((_, colIdx) => heatColors(sample.heatData[rowIdx][colIdx])),
+          borderWidth:1, borderColor:'rgba(8,16,32,0.9)'
+        }));
+
+        heatChart = new Chart(ctx, {
+          type:'bar',
+          data:{ labels: sample.heatLabelsX, datasets },
+          options:{
+            responsive:true, maintainAspectRatio:false, indexAxis:'y',
+            plugins:{ legend:{ position:'bottom', labels:{ color: '#9bc4eb' } },
+              tooltip:{ callbacks:{ label:(c)=> `${c.dataset.label} • ${c.label}: ${c.raw} defects` }, backgroundColor:'rgba(6,12,24,0.9)', borderColor:'rgba(45,212,255,0.35)', borderWidth:1, titleColor:'#e8f6ff', bodyColor:'#cfe7ff' } },
+            scales:{ x:{ stacked:true, beginAtZero:true, grid:{ color:'rgba(35,168,255,0.08)' }, ticks:{ color:'#a9d9ff' } }, y:{ stacked:true, grid:{ display:false }, ticks:{ color:'#a9d9ff' } } }
+          }
+        });
+      }
+    }
+
+    // Pareto chart for defects top 10
+    function renderPareto(def){
+      const muted  = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#7aa0c7';
+      const violet = getComputedStyle(document.documentElement).getPropertyValue('--accent-deep').trim() || '#6c7dff';
+      const amber  = getComputedStyle(document.documentElement).getPropertyValue('--accent-amber').trim()|| '#ffb84d';
+
+      const ctx = mkCtx('paretoChart');
+      // bars sorted desc (already)
+      const dataBar = def.counts;
+      // cumulative percentage line
+      const dataCum = def.cumulative;
+
+      paretoChart = new Chart(ctx, {
+        type:'bar',
+        data:{
+          labels: def.labels,
+          datasets:[
+            {
+              type:'bar',
+              label:'Defect count',
+              data: dataBar,
+              yAxisID:'y',
+              borderColor: violet,
+              backgroundColor: 'rgba(108,125,255,0.35)',
+              borderWidth:1.5,
+              borderRadius:6
+            },
+            {
+              type:'line',
+              label:'Cumulative %',
+              data: dataCum,
+              yAxisID:'y1',
+              borderColor: amber,
+              backgroundColor:'rgba(255,184,77,0.15)',
+              pointBackgroundColor: amber,
+              pointBorderColor: amber,
+              fill:false,
+              tension:.25
+            }
+          ]
+        },
+        options:{
+          responsive:true, maintainAspectRatio:false,
+          scales:{
+            y:{ beginAtZero:true, grid:{ color:'rgba(35,168,255,0.12)' }, ticks:{ color:'#a9d9ff' } },
+            y1:{ position:'right', beginAtZero:true, max:100, grid:{ display:false }, ticks:{ color:'#ffdba3', callback:v=>v+'%' } },
+            x:{ grid:{ color:'rgba(35,168,255,0.08)' }, ticks:{ color:'#a9d9ff' } }
+          },
+          plugins:{
+            legend:{ position:'bottom', labels:{ color: muted } },
+            tooltip:{ mode:'index', intersect:false, backgroundColor:'rgba(6,12,24,0.9)', borderColor:'rgba(45,212,255,0.35)', borderWidth:1, titleColor:'#e8f6ff', bodyColor:'#cfe7ff' }
+          }
+        }
+      });
+    }
+
+    // Operator SPC-style chart and histogram
+    function renderOperator(perf){
+      const neon   = getComputedStyle(document.documentElement).getPropertyValue('--accent-neon').trim() || '#2dd4ff';
+      const mag    = getComputedStyle(document.documentElement).getPropertyValue('--accent-mag').trim()  || '#ff58c8';
+      const amber  = getComputedStyle(document.documentElement).getPropertyValue('--accent-amber').trim()|| '#ffb84d';
+      const muted  = getComputedStyle(document.documentElement).getPropertyValue('--muted').trim() || '#7aa0c7';
+
+      // SPC time series with mean and +/-3σ bands
+      {
+        const ctx = mkCtx('operatorSpcChart');
+        const meanLine = Array(perf.vals.length).fill(perf.avg);
+        const uclLine = Array(perf.vals.length).fill(perf.ucl);
+        const lclLine = Array(perf.vals.length).fill(perf.lcl);
+
+        operatorSpcChart = new Chart(ctx, {
+          type:'line',
+          data:{
+            labels: perf.labels,
+            datasets:[
+              { label:'Cycle time (s)', data: perf.vals, borderColor: neon, backgroundColor:'rgba(45,212,255,0.15)', fill:true, tension:.25, pointRadius:2.5, pointBackgroundColor:neon },
+              { label:'Mean', data: meanLine, borderColor: amber, borderDash:[6,6], pointRadius:0, fill:false },
+              { label:'UCL (+3σ)', data: uclLine, borderColor: mag, borderDash:[4,6], pointRadius:0, fill:false },
+              { label:'LCL (−3σ)', data: lclLine, borderColor: mag, borderDash:[4,6], pointRadius:0, fill:false }
+            ]
+          },
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            scales:{
+              x:{ grid:{ color:'rgba(35,168,255,0.08)' }, ticks:{ color:'#a9d9ff' } },
+              y:{ beginAtZero:false, grid:{ color:'rgba(35,168,255,0.12)' }, ticks:{ color:'#a9d9ff' } }
+            },
+            plugins:{ legend:{ position:'bottom', labels:{ color: muted } }, tooltip:{ backgroundColor:'rgba(6,12,24,0.9)', borderColor:'rgba(45,212,255,0.35)', borderWidth:1, titleColor:'#e8f6ff', bodyColor:'#cfe7ff' } }
+          }
+        });
+      }
+
+      // Histogram for distribution of cycle time
+      {
+        const ctx = mkCtx('operatorHistChart');
+        const values = perf.vals.slice().sort((a,b)=>a-b);
+        const bins = 8;
+        const min = values[0], max = values[values.length-1];
+        const width = (max - min) / bins;
+        const edges = Array.from({length:bins}, (_,i)=> min + i*width);
+        const counts = Array(bins).fill(0);
+        values.forEach(v=>{
+          let idx = Math.floor((v - min)/width);
+          if(idx === bins) idx = bins-1;
+          counts[idx] += 1;
+        });
+        const labels = edges.map((e,i)=> `${(e).toFixed(1)}–${(e+width).toFixed(1)}`);
+
+        operatorHistChart = new Chart(ctx, {
+          type:'bar',
+          data:{
+            labels,
+            datasets:[{
+              label:'Frequency',
+              data: counts,
+              backgroundColor:'rgba(108,125,255,0.35)',
+              borderColor:'#6c7dff',
+              borderWidth:1.5,
+              borderRadius:6
+            }]
+          },
+          options:{
+            responsive:true, maintainAspectRatio:false,
+            scales:{
+              x:{ grid:{ color:'rgba(35,168,255,0.08)' }, ticks:{ color:'#a9d9ff', maxRotation:0 } },
+              y:{ beginAtZero:true, grid:{ color:'rgba(35,168,255,0.12)' }, ticks:{ color:'#a9d9ff' } }
+            },
+            plugins:{ legend:{ position:'bottom', labels:{ color: '#9bc4eb' } }, tooltip:{ backgroundColor:'rgba(6,12,24,0.9)', borderColor:'rgba(45,212,255,0.35)', borderWidth:1, titleColor:'#e8f6ff', bodyColor:'#cfe7ff' } }
+          }
+        });
+      }
+    }
+
+    function renderAll(){
+      destroyAllChartsAndClear();
+      const core = generateCoreSample();
+      const defects = generateDefectsTop10();
+      const perf = generateOperatorPerf();
+
+      updateKpis(computeKpis(core));
+      renderCoreCharts(core);
+      renderPareto(defects);
+      renderOperator(perf);
+    }
+
+    analyzeBtn.addEventListener('click', ()=>{
+      renderAll();
+      const section = document.querySelector('.analysis');
+      section && section.scrollIntoView({behavior:'smooth', block:'start'});
+    });
+
+    clearBtn.addEventListener('click', ()=>{
+      fileInput.value = '';
+      resetFileUi();
+      nullifyKpis();
+      destroyAllChartsAndClear();
+    });
+
+    // Optional: Uncomment to render on load
+    // renderAll();
+  </script>
+</body>
+</html>
